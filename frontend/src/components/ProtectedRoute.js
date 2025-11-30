@@ -8,10 +8,11 @@ export default function ProtectedRoute({ children }) {
     useEffect(() => {
         const checkLoginStatus = async () => {
             try {
-                const response = await fetch(`${process.env.REACT_APP_Server_URL || 'http://localhost:5000'}/api/forms`, {
+                const response = await fetch(`${process.env.REACT_APP_Server_URL || 'http://localhost:5000'}/auth/check`, {
                     credentials: 'include'
                 });
-                setIsAuthenticated(response.ok);
+                const data = await response.json();
+                setIsAuthenticated(response.ok && data.authenticated === true);
             } catch (error) {
                 console.error("Error checking login status:", error);
                 setIsAuthenticated(false);

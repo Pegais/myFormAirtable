@@ -8,10 +8,11 @@ export default function Login() {
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_Server_URL || 'http://localhost:5000'}/api/forms`, {
+        const response = await fetch(`${process.env.REACT_APP_Server_URL || 'http://localhost:5000'}/auth/check`, {
           credentials: 'include'
         });
-        if (response.ok) {
+        const data = await response.json();
+        if (response.ok && data.authenticated===true) {
           navigate('/dashboard');
         }
       } catch (error) {
