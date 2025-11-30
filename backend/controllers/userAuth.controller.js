@@ -153,14 +153,24 @@ const authCallback = async (req, res, next) => {
 
 const checkAuth = async (req, res, next) => {
     try {
+        console.log("=== Auth Check ===");
+        console.log("Request origin:", req.headers.origin);
+        console.log("Cookies object:", req.cookies);
+        console.log("Cookies keys:", req.cookies ? Object.keys(req.cookies) : 'No cookies object');
+        console.log("Cookie header:", req.headers.cookie);
+        console.log("Has cookie-parser?", typeof req.cookies !== 'undefined');
+        
         const token = req.cookies?.token;
+        console.log("Token from cookies:", token ? "✅ FOUND" : "❌ NOT FOUND");
 
         if (!token) {
+            console.log("❌ No token found in cookies");
             return res.status(200).json({ authenticated: false, message: "No token found" });
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await userModel.findOne({ userId: decoded.userId });
+        
         if (!user) {
             return res.status(200).json({ authenticated: false, message: "User not found" });
         }
