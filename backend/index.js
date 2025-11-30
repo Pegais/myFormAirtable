@@ -9,7 +9,9 @@ const app = express();
 app.use(cors(
     {
         origin: process.env.FRONTEND_URL,
-        credentials: true
+        credentials: true,
+        methods:['GET','POST','PUT','DELETE','OPTIONS'],
+        allowedHeaders:['Content-Type','Authorization'],
     }));
 
 //enable sessions;
@@ -19,7 +21,9 @@ app.use(session({
     resave:false,
     saveUninitialized:true,
     cookie:{
-        secure:process.env.NODE_ENV === "production",
+        secure:true,
+        sameSite:'none',
+        httpOnly:true,
         maxAge:30*24*60*60*1000 //30 days
     }
 }))
