@@ -23,60 +23,79 @@ const handleAirtableWebhook = async (req, res, next) => {
             }
         }
 
-        // Handle webhook events (POST requests)
-        const { event } = req.body;
+        // Handle POST requests
+        const { base, webhook, timestamp, eventNotifications } = req.body;
 
-        if (!event || !event.type) {
-            console.log("Invalid webhook payload - no event or event.type");
-            return res.status(400).json({ message: "Invalid webhook payload" });
+        // Check if this is a ping/heartbeat request (no eventNotifications)
+        // Airtable sends these periodically to verify the webhook is still alive
+        if (!eventNotifications || !Array.isArray(eventNotifications) || eventNotifications.length === 0) {
+            console.log("✅ Webhook ping/heartbeat received - webhook is healthy");
+            console.log(`   Base: ${base?.id}, Webhook: ${webhook?.id}, Timestamp: ${timestamp}`);
+            // Return 200 OK for ping requests
+            return res.status(200).json({ message: "Webhook ping received" });
         }
 
-        const { type, record } = event;
+        // Process event notifications
+        console.log(`📬 Received ${eventNotifications.length} event notification(s)`);
 
-        console.log("Webhook event type:", type);
-        console.log("Webhook record ID:", record?.id);
+        for (const notification of eventNotifications) {
+            const { event } = notification;
 
-        //check if record exists or not;
-        if (!record || !record.id) {
-            console.log("Webhook event missing record or record.id");
-            return res.status(200).json({ message: "Webhook event missing record data" });
+            if (!event || !event.type) {
+                console.log("⚠️ Skipping invalid event notification - missing event or event.type");
+                continue;
+            }
+
+            const { type, record } = event;
+
+            console.log(`📋 Processing event: ${type}, Record ID: ${record?.id}`);
+
+            // Check if record exists
+            if (!record || !record.id) {
+                console.log("⚠️ Event missing record or record.id, skipping");
+                continue;
+            }
+
+            // Find response from airtable record id
+            const response = await ResponseModel.findOne({ airtableRecordId: record.id });
+            if (!response) {
+                // Record was not found in our database
+                // May be from different form or deleted manually
+                console.log(`⚠️ Response not found for airtable record: ${record.id}`);
+                continue;
+            }
+
+            switch (type) {
+                case 'record.updated':
+                    // Update response in our database
+                    response.answers = record.fields || response.answers;
+                    response.updatedAt = new Date();
+                    await response.save();
+                    console.log(`✅ Response updated for airtable record: ${record.id}`);
+                    break;
+
+                case 'record.deleted':
+                    // Soft delete the response in our database
+                    response.deletedInAirtable = true;
+                    response.updatedAt = new Date();
+                    await response.save();
+                    console.log(`✅ Response soft deleted for airtable record: ${record.id}`);
+                    break;
+
+                default:
+                    console.log(`⚠️ Unsupported event type: ${type}`);
+                    break;
+            }
         }
 
-        //find response from airtable record id;
-        const response = await ResponseModel.findOne({ airtableRecordId: record.id });
-        if (!response) {
-            //record was not found in our database;
-            // may be from different form or deleted manually;
-            console.log(`Response not found for airtable record: ${record.id}`);
-            return res.status(200).json({ message: "Response not found in database" });
-        }
+        // Always return 200 OK to Airtable (Airtable retries if we return error)
+        return res.status(200).json({ message: "Webhook processed successfully" });
 
-        switch (type) {
-            case 'record.updated':
-                //update response in our database;
-                response.answers = record.fields || response.answers;
-                response.updatedAt = new Date();
-                await response.save();
-                console.log(`✅ Response updated for airtable record: ${record.id} from Airtable webhook`);
-                return res.status(200).json({ message: "Response updated successfully" });
-
-            case 'record.deleted':
-                //soft delete the response in our database;
-                response.deletedInAirtable = true;
-                response.updatedAt = new Date();
-                await response.save();
-                console.log(`✅ Response soft deleted for airtable record: ${record.id} from Airtable webhook`);
-                return res.status(200).json({ message: "Response soft deleted successfully" });
-
-            default:
-                console.log(`Unsupported event type: ${type} from Airtable webhook`);
-                return res.status(200).json({ message: "Unsupported event type" });
-        }
     } catch (error) {
         console.error("❌ Error handling Airtable webhook:", error);
         console.error("Error stack:", error.stack);
-        //always return 200 to airtable (airtable retries if we return error);
-        //log the error but to avoid spamming the webhook;
+        // Always return 200 to airtable (airtable retries if we return error)
+        // Log the error but avoid spamming the webhook
         return res.status(200).json({ message: "Error handling webhook, but processed successfully" });
     }
 }
