@@ -5,13 +5,30 @@ const cookieParser = require("cookie-parser");
 const app = express();
 //app.use(cookieParser()); 
 // enabling cors 
-app.use(cors(
-    {
-        origin: process.env.FRONTEND_URL,
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-    }));
+// CORS for regular API routes (with credentials)
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or Postman)
+        if (!origin) {
+            return callback(null, true);
+        }
+        
+        // Allow frontend origin
+        const normalizedOrigin = origin.replace(/\/$/, '');
+        const normalizedFrontend = process.env.FRONTEND_URL?.replace(/\/$/, '');
+        
+        if (normalizedOrigin === normalizedFrontend) {
+            return callback(null, true);
+        }
+        
+        // For webhook routes, we'll allow all in the webhook router itself
+        callback(null, true); // Allow all for now (temporary)
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions));
 app.use(cookieParser());
 //enable sessions;
 const session = require("express-session");
