@@ -7,7 +7,7 @@ const { getAccessibleUserBases,
     createRecordInAirtable,
     updateRecordInAirtable,
     deleteRecordInAirtable } = require("../services/airtable.service");
-const { registerWebhook, deleteWebhook } = require("../services/webhook.service");
+const { registerWebhook, deleteWebhook, cleanupOrphanedWebhooks } = require("../services/webhook.service");
 
 /**
  * get all airtable bases for the authenticated user;
@@ -104,6 +104,14 @@ const createForm = async (req, res, next) => {
 
                 } else {
                     //url is https, so we can register the webhook;
+                    // First, clean up any orphaned webhooks to avoid hitting the limit
+                    try {
+                        await cleanupOrphanedWebhooks(owner.accessToken, baseId, userId);
+                    } catch (cleanupError) {
+                        // Continue even if cleanup fails - will handle limit error in registerWebhook
+                        // console.log("Webhook cleanup warning:", cleanupError.message);
+                    }
+                    
                     const webhookId = await registerWebhook(owner.accessToken, baseId, tableId, webhookUrl, userId);
                     form.webhookId = webhookId;
                     await form.save();
@@ -115,7 +123,13 @@ const createForm = async (req, res, next) => {
             console.error("Forms: Error registering webhook:", webhookError.message);
             //continue with form creation even if webhook fails;
             await form.save();
-            res.status(201).json({ form });
+            // Return success but include a warning about webhook
+            res.status(201).json({ 
+                form,
+                warning: webhookError.message.includes('limit') || webhookError.message.includes('maximum') 
+                    ? 'Form created but webhook registration failed: ' + webhookError.message
+                    : undefined
+            });
 
         }
     } catch (error) {
