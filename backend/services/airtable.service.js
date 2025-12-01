@@ -23,16 +23,16 @@ const getAccessibleUserBases = async (accessToken,userId=null) => {
         //if 401, and userId is provided, try to refresh token;
         if(error.response?.status === 401 && userId){
             try {
-                console.log('Refreshing access token for user:', userId);
+                // console.log('Refreshing access token for user:', userId);
                 
                 const newAccessToken = await refreshAccessToken(userId);
                 return await makeRequest(newAccessToken);
             } catch (refreshError) {
-                console.error('Error refreshing access token:', refreshError.response?.data || refreshError.message);
+                console.error('Airtable: Error refreshing access token:', refreshError.response?.data || refreshError.message);
                 throw new Error('Failed to refresh access token');
             }
         }
-        console.error('Error getting accessible user bases:', error.response?.data || error.message);
+        console.error('Airtable: Error getting accessible user bases:', error.response?.data || error.message);
         throw new Error('Failed to fetch accessible airtable bases');
     }
 };
@@ -58,15 +58,15 @@ const getTablesInBase = async (accessToken, baseId, userId=null) => {
     } catch (error) {
         if(error.response?.status === 401 && userId){
             try {
-                console.log('Refreshing access token for user:', userId);
+                // console.log('Refreshing access token for user:', userId);
                 const newAccessToken = await refreshAccessToken(userId);
                 return await makeRequest(newAccessToken);
             } catch (refreshError) {
-                console.error('Error refreshing access token:', refreshError.response?.data || refreshError.message);
+                console.error('Airtable: Error refreshing access token:', refreshError.response?.data || refreshError.message);
                 throw new Error('Failed to refresh access token');
             }
         }   
-        console.error('Error getting tables in base:', error.response?.data || error.message);
+        console.error('Airtable: Error getting tables in base:', error.response?.data || error.message);
         throw new Error('Failed to fetch tables from airtable base');
     }
 };
@@ -104,15 +104,15 @@ const getFieldsInTable = async (accessToken, baseId, tableId,userId=null) => {
     } catch (error) {
         if(error.response?.status === 401 && userId){
             try {
-                console.log('Refreshing access token for user:', userId);
+                // console.log('Refreshing access token for user:', userId);
                 const newAccessToken = await refreshAccessToken(userId);
                 return await makeRequest(newAccessToken);
             } catch (refreshError) {
-                console.error('Error refreshing access token:', refreshError.response?.data || refreshError.message);
+                console.error('Airtable: Error refreshing access token:', refreshError.response?.data || refreshError.message);
                 throw new Error('Failed to refresh access token');
             }
         }   
-        console.error('Error getting fields in table:', error.response?.data || error.message);
+        console.error('Airtable: Error getting fields in table:', error.response?.data || error.message);
         throw new Error('Failed to fetch fields from airtable table');
     }
 };
@@ -151,15 +151,15 @@ const createRecordInAirtable = async (accessToken, baseId, tableId, fields, user
     } catch (error) {
         if(error.response?.status === 401 && userId){
             try {
-                console.log('Refreshing access token for user:', userId);
+                // console.log('Refreshing access token for user:', userId);
                 const newAccessToken = await refreshAccessToken(userId);
                 return await makeRequest(newAccessToken);
             } catch (refreshError) {
-                console.error('Error refreshing access token:', refreshError.response?.data || refreshError.message);
+                console.error('Airtable: Error refreshing access token:', refreshError.response?.data || refreshError.message);
                 throw new Error('Failed to refresh access token');
             }
         }   
-        console.error('Error creating record in airtable:', error.response?.data || error.message);
+        console.error('Airtable: Error creating record:', error.response?.data || error.message);
         throw new Error('Failed to create record in airtable');
     }
 }
@@ -190,15 +190,15 @@ const updateRecordInAirtable = async (accessToken, baseId, tableId, recordId, fi
     } catch (error) {
         if(error.response?.status === 401 && userId){
             try {
-                console.log('Refreshing access token for user:', userId);
+                // console.log('Refreshing access token for user:', userId);
                 const newAccessToken = await refreshAccessToken(userId);
                 return await makeRequest(newAccessToken);
             } catch (refreshError) {
-                console.error('Error refreshing access token:', refreshError.response?.data || refreshError.message);
+                console.error('Airtable: Error refreshing access token:', refreshError.response?.data || refreshError.message);
                 throw new Error('Failed to refresh access token');
             }
         }   
-        console.error('Error updating record in airtable:', error.response?.data || error.message);
+        console.error('Airtable: Error updating record:', error.response?.data || error.message);
         throw new Error('Failed to update record in airtable');
     }
 }
@@ -226,15 +226,15 @@ const deleteRecordInAirtable = async (accessToken, baseId, tableId, recordId, us
     } catch (error) {
         if(error.response?.status === 401 && userId){
             try {
-                console.log('Refreshing access token for user:', userId);
+                // console.log('Refreshing access token for user:', userId);
                 const newAccessToken = await refreshAccessToken(userId);
                 return await makeRequest(newAccessToken);
             } catch (refreshError) {
-                console.error('Error refreshing access token:', refreshError.response?.data || refreshError.message);
+                console.error('Airtable: Error refreshing access token:', refreshError.response?.data || refreshError.message);
                 throw new Error('Failed to refresh access token');
             }
         }   
-        console.error('Error deleting record in airtable:', error.response?.data || error.message);
+        console.error('Airtable: Error deleting record:', error.response?.data || error.message);
         throw new Error('Failed to delete record in airtable');
     }
 

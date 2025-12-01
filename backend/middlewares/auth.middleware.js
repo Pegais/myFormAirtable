@@ -24,7 +24,7 @@ const authenticateUser = async (req,res,next)=>{
         if(error.name === "JsonWebTokenError" || error.name === "TokenExpiredError"){
             return res.status(401).json({message:"Invalid or expired token"});
         };
-        console.error(error,"Middleware auth error");
+        console.error("Auth: Middleware auth error:", error.message);
         return res.status(500).json({message:"Authentcation error"});
     }
 }

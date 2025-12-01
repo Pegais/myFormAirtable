@@ -33,7 +33,7 @@ const refreshAccessToken = async (userId) => {
         await user.save();
         return user.accessToken;
     } catch (error) {
-        console.error('Error refreshing access token:', error.response?.data || error.message);
+        console.error('TokenRefresh: Error refreshing access token:', error.response?.data || error.message);
         throw new Error('Failed to refresh access token');
     }
 }

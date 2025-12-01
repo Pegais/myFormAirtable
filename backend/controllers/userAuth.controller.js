@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 
 const Auth = async (req, res, next) => {
     try {
-        console.log("=== OAuth Initiation ===");
+        // console.log("=== OAuth Initiation ===");
         const verifier = VerificationGenerator();
         const challenge = hashFromVerifier(verifier);
         const tempStore = createRandomState();
@@ -17,7 +17,7 @@ const Auth = async (req, res, next) => {
             codeVerifier: verifier
         });
 
-        console.log("State stored in DB:", tempStore);
+        // console.log("State stored in DB:", tempStore);
 
         const baseUrl = process.env.Airtable_BASEURL;
         const parameters = new URLSearchParams({
@@ -40,32 +40,31 @@ const Auth = async (req, res, next) => {
 
 const authCallback = async (req, res, next) => {
     try {
-        console.log("=== OAuth Callback ===");
-        console.log("Query received:", req.query);
+        // console.log("=== OAuth Callback ===");
+        // console.log("Query received:", req.query);
 
         //checking if there is any error from airtable
         if (req.query.error) {
-            console.error("Oauth error from airtable:", req.query.error, req.query.error_description);
+            console.error("OAuth: Error from Airtable:", req.query.error, req.query.error_description);
             return res.redirect(`${process.env.FRONTEND_URL}/login?error=${req.query.error}`);
         }
 
         //validating if code exists
         if (!req.query.code) {
-            console.error("No code found in the request");
+            console.error("OAuth: No code found in the request");
             return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_code`);
         }
 
         //validating if state exists
         if (!req.query.state) {
-            console.error("No state in query");
+            console.error("OAuth: No state in query");
             return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_state`);
         }
 
         // Find state in MongoDB (REMOVED the old tempStateStore check)
         const oauthState = await oauthStateModel.findOne({ state: req.query.state });
         if (!oauthState) {
-            console.error("State not found in database:", req.query.state);
-            console.error("This could mean: 1) State expired (10 min TTL), 2) Server restarted, 3) Invalid state");
+            console.error("OAuth: State not found in database:", req.query.state);
             return res.status(400).redirect(`${process.env.FRONTEND_URL}/login?error=invalid_state`);
         }
 
@@ -84,7 +83,7 @@ const authCallback = async (req, res, next) => {
         })
         const credentials = Buffer.from(`${process.env.AIRTABLE_CLIENT_ID}:${process.env.AIRTABLE_CLIENT_SECRET}`).toString('base64');
 
-        console.log("Exchanging code for token...");
+        // console.log("Exchanging code for token...");
         const responseToken = await axios.post(`${process.env.Airtable_tokenUrl}`, tokenParams.toString(), {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -94,13 +93,13 @@ const authCallback = async (req, res, next) => {
         const accessToken = responseToken.data.access_token;
 
         //fetching airtable account info;
-        console.log("Fetching user profile from Airtable...");
+        // console.log("Fetching user profile from Airtable...");
         const profileResponse = await axios.get('https://api.airtable.com/v0/meta/whoami', {
             headers: {
                 Authorization: `Bearer ${accessToken}`
             }
         });
-        console.log("Airtable profile:", profileResponse.data);
+        // console.log("Airtable profile:", profileResponse.data);
 
         const user = await userModel.findOneAndUpdate({
             userId: profileResponse.data.id
@@ -121,7 +120,7 @@ const authCallback = async (req, res, next) => {
             userId: user.userId
         }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        console.log("Setting cookie and redirecting...");
+        // console.log("Setting cookie and redirecting...");
         //setting response cookie with jwt;
         res.cookie('token', token, {
             httpOnly: true,
@@ -134,12 +133,11 @@ const authCallback = async (req, res, next) => {
         res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
 
     } catch (error) {
-        console.error("=== OAuth Callback Error ===");
-        console.error("Error message:", error.message);
-        console.error("Error stack:", error.stack);
+        console.error("OAuth: Callback error:", error.message);
+        // console.error("Error stack:", error.stack);
         if (error.response) {
-            console.error("Response status:", error.response.status);
-            console.error("Response data:", error.response.data);
+            console.error("OAuth: Response status:", error.response.status);
+            // console.error("Response data:", error.response.data);
         }
 
         // Clean up state if it exists
@@ -153,18 +151,18 @@ const authCallback = async (req, res, next) => {
 
 const checkAuth = async (req, res, next) => {
     try {
-        console.log("=== Auth Check ===");
-        console.log("Request origin:", req.headers.origin);
-        console.log("Cookies object:", req.cookies);
-        console.log("Cookies keys:", req.cookies ? Object.keys(req.cookies) : 'No cookies object');
-        console.log("Cookie header:", req.headers.cookie);
-        console.log("Has cookie-parser?", typeof req.cookies !== 'undefined');
+        // console.log("=== Auth Check ===");
+        // console.log("Request origin:", req.headers.origin);
+        // console.log("Cookies object:", req.cookies);
+        // console.log("Cookies keys:", req.cookies ? Object.keys(req.cookies) : 'No cookies object');
+        // console.log("Cookie header:", req.headers.cookie);
+        // console.log("Has cookie-parser?", typeof req.cookies !== 'undefined');
         
         const token = req.cookies?.token;
-        console.log("Token from cookies:", token ? "✅ FOUND" : "❌ NOT FOUND");
+        // console.log("Token from cookies:", token ? "✅ FOUND" : "❌ NOT FOUND");
 
         if (!token) {
-            console.log("❌ No token found in cookies");
+            // console.log("❌ No token found in cookies");
             return res.status(200).json({ authenticated: false, message: "No token found" });
         }
 

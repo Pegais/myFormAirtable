@@ -36,7 +36,7 @@ const evaluateConditionalRule = (rule, answers) => {
                 return false;
             }
         default:
-            console.warn(`Unsupported operator: ${operator}`);
+            // console.warn(`Unsupported operator: ${operator}`);
             return false;
      }
             

@@ -93,7 +93,7 @@ const submitFormResponse = async (req, res, next) => {
         try {
             airtableRecordId = await createRecordInAirtable(owner.accessToken, form.baseId, form.tableId, airtableFields,owner.userId);
         } catch (error) {
-            console.error("Error creating record in airtable:", error);
+            console.error("Response: Error creating record in Airtable:", error.message);
             return res.status(500).json({ message: "Failed to create record in airtable" });
         }
 
@@ -106,7 +106,7 @@ const submitFormResponse = async (req, res, next) => {
         });
         res.status(201).json({ message: "Form response submitted successfully", response });
     } catch (error) {
-        console.error("Error submitting form response:", error);
+        console.error("Response: Error submitting form response:", error.message);
         if (error.name === "ValidationError") {
             return res.status(400).json({ message: "Validation errors", details: error.message });
         }
@@ -157,7 +157,7 @@ const getFormResponses = async (req, res, next) => {
         })
     }
     catch (error) {
-        console.error("Error getting form responses:",error);
+        console.error("Response: Error getting form responses:", error.message);
         if(error.name === "CastError"){
             return res.status(400).json({message:"Invalid form id"});
         }

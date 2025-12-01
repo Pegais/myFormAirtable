@@ -20,7 +20,7 @@ const getBases = async (req, res, next) => {
         const bases = await getAccessibleUserBases(accessToken, userId);
         res.status(200).json({ bases });
     } catch (error) {
-        console.error("Error getting airtable bases:", error);
+        console.error("Forms: Error getting airtable bases:", error.message);
         return res.status(500).json({ message: "Failed to get airtable bases" });
 
     }
@@ -38,7 +38,7 @@ const getTables = async (req, res, next) => {
         const tables = await getTablesInBase(accessToken, baseId, userId);
         res.status(200).json({ tables });
     } catch (error) {
-        console.error("Error getting airtable tables:", error);
+        console.error("Forms: Error getting airtable tables:", error.message);
         return res.status(500).json({ message: "Failed to get airtable tables" });
 
     }
@@ -60,7 +60,7 @@ const getFields = async (req, res, next) => {
         const fields = await getFieldsInTable(accessToken, baseId, tableId, userId);
         res.status(200).json({ fields });
     } catch (error) {
-        console.error("Error getting airtable fields:", error);
+        console.error("Forms: Error getting airtable fields:", error.message);
         return res.status(500).json({ message: "Failed to get airtable fields" });
     }
 };
@@ -107,19 +107,19 @@ const createForm = async (req, res, next) => {
                     const webhookId = await registerWebhook(owner.accessToken, baseId, tableId, webhookUrl, userId);
                     form.webhookId = webhookId;
                     await form.save();
-                    console.log(`Webhook ${webhookId} registered successfully`);
+                    // console.log(`Webhook ${webhookId} registered successfully`);
                 }
             }
             res.status(201).json({ form });
         } catch (webhookError) {
-            console.error("Error registering webhook:", webhookError);
+            console.error("Forms: Error registering webhook:", webhookError.message);
             //continue with form creation even if webhook fails;
             await form.save();
             res.status(201).json({ form });
 
         }
     } catch (error) {
-        console.error("Error creating form:", error);
+        console.error("Forms: Error creating form:", error.message);
         if (error.name === "ValidationError") {
             return res.status(400).json({ error: error.message });
         };
@@ -140,7 +140,7 @@ const getForms = async (req, res, next) => {
         const forms = await FormModel.find({ userId }).sort({ createdAt: -1 });
         res.status(200).json({ forms });
     } catch (error) {
-        console.error("Error getting forms:", error);
+        console.error("Forms: Error getting forms:", error.message);
         return res.status(500).json({ message: "Failed to get forms" });
     }
 };
@@ -160,7 +160,7 @@ const getFormById = async (req, res, next) => {
         };
         res.status(200).json({ form });
     } catch (error) {
-        console.error("Error getting form:", error);
+        console.error("Forms: Error getting form:", error.message);
         if (error.name === "CastError") {
             return res.status(400).json({ message: "Invalid form id" });
         };
@@ -181,7 +181,7 @@ const getFormForPublicView = async (req, res, next) => {
         };
         res.status(200).json({ form });
     } catch (error) {
-        console.error("Error getting form for public view:", error);
+        console.error("Forms: Error getting form for public view:", error.message);
         if (error.name === "CastError") {
             return res.status(400).json({ message: "Invalid form id" });
         };
@@ -212,7 +212,7 @@ const deleteForm = async (req, res, next) => {
                     await deleteWebhook(owner.accessToken, form.baseId, form.webhookId, userId);
                 }
             } catch (webhookError) {
-                console.error("Error deleting webhook:", webhookError);
+                console.error("Forms: Error deleting webhook:", webhookError.message);
                 console.warn('Webhook deletion failed, continuing with other operations');
                 //continue with form deletion even if webhook deletion fails;
             }
@@ -222,7 +222,7 @@ const deleteForm = async (req, res, next) => {
         res.status(200).json({ message: "Form deleted successfully" });
     }
     catch (error) {
-        console.error("Error deleting form:", error);
+        console.error("Forms: Error deleting form:", error.message);
         if (error.name === "CastError") {
             return res.status(400).json({ message: "Invalid form id" });
         };
@@ -269,7 +269,7 @@ const updateForm = async (req, res, next) => {
         res.status(200).json({ message: "Form updated successfully", form });
     }
     catch (error) {
-        console.error("Error updating form:", error);
+        console.error("Forms: Error updating form:", error.message);
         if (error.name === "CastError") {
             return res.status(400).json({ message: "Invalid form id" });
         };

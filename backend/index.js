@@ -68,6 +68,6 @@ const webhookRouter = require("./routes/webhook.routes");
 app.use('/webhooks', webhookRouter);
 
 app.listen(PORT, () => {
-    console.log(`server running on PORT${PORT}`);
+    // console.log(`server running on PORT${PORT}`);
 
 })

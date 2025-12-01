@@ -33,15 +33,15 @@ const registerWebhook = async (accessToken, baseId,tableId, webhookUrl,userId=nu
     } catch (error) {
         if(error.response?.status === 401 && userId){
             try {
-                console.log('Refreshing access token for user:', userId);
+                // console.log('Refreshing access token for user:', userId);
                 const newAccessToken = await refreshAccessToken(userId);
                 return await makeRequest(newAccessToken);
             } catch (refreshError) {
-                console.error('Error refreshing access token:', refreshError.response?.data || refreshError.message);
+                console.error('Webhook: Error refreshing access token:', refreshError.response?.data || refreshError.message);
                 throw new Error('Failed to refresh access token');
             }
         }   
-        console.error('Error registering webhook:', error.response?.data || error.message);
+        console.error('Webhook: Error registering webhook:', error.response?.data || error.message);
         throw new Error('Failed to register webhook');
     }
 };
@@ -60,24 +60,24 @@ const deleteWebhook = async (accessToken, baseId, webhookId,userId=null) => {
                 'Content-Type': 'application/json'
             }
         });
-        console.log('Webhook deleted successfully');
+        // console.log('Webhook deleted successfully');
     }
-    try {
-        return await makeRequest(accessToken);
-    } catch (error) {
-        if(error.response?.status === 401 && userId){
-            try {
-                console.log('Refreshing access token for user:', userId);
-                const newAccessToken = await refreshAccessToken(userId);
-                return await makeRequest(newAccessToken);
-            } catch (refreshError) {
-                console.error('Error refreshing access token:', refreshError.response?.data || refreshError.message);
-                throw new Error('Failed to refresh access token');
-            }
-        }   
-        console.error('Error deleting webhook:', error.response?.data || error.message);
-        console.warn('Webhook deletion failed, continuing with other operations');
-    }
+        try {
+            return await makeRequest(accessToken);
+        } catch (error) {
+            if(error.response?.status === 401 && userId){
+                try {
+                    // console.log('Refreshing access token for user:', userId);
+                    const newAccessToken = await refreshAccessToken(userId);
+                    return await makeRequest(newAccessToken);
+                } catch (refreshError) {
+                    console.error('Webhook: Error refreshing token for deletion:', refreshError.response?.data || refreshError.message);
+                    throw new Error('Failed to refresh access token');
+                }
+            }   
+            console.error('Webhook: Error deleting webhook:', error.response?.data || error.message);
+            // console.warn('Webhook deletion failed, continuing with other operations');
+        }
 };
 
 
@@ -118,15 +118,15 @@ const fetchWebhookPayloads = async (accessToken, baseId, webhookId, cursor = nul
     } catch (error) {
         if (error.response?.status === 401 && userId) {
             try {
-                console.log('Refreshing access token for webhook payload fetch:', userId);
+                // console.log('Refreshing access token for webhook payload fetch:', userId);
                 const newAccessToken = await refreshAccessToken(userId);
                 return await makeRequest(newAccessToken);
             } catch (refreshError) {
-                console.error('Error refreshing access token:', refreshError.response?.data || refreshError.message);
+                console.error('Webhook: Error refreshing token for payload fetch:', refreshError.response?.data || refreshError.message);
                 throw new Error('Failed to refresh access token');
             }
         }
-        console.error('Error fetching webhook payloads:', error.response?.data || error.message);
+        console.error('Webhook: Error fetching payloads:', error.response?.data || error.message);
         throw new Error('Failed to fetch webhook payloads');
     }
 };
