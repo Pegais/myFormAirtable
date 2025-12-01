@@ -589,6 +589,138 @@ docker run -p 5000:5000 --env-file .env airtable-form-backend
 
 ## 📸 Screenshots & Demo
 
+### Dashboard View
+
+The main dashboard shows all your created forms with quick access to view, edit, share, and manage responses.
+
+![Dashboard](./docs/screenshots/dashboard.png)
+
+*Dashboard displaying all created forms with options to view, share, edit, and delete.*
+
+### Form Builder - Step 1: Select Base
+
+Choose which Airtable base to connect your form to.
+
+![Form Builder - Select Base](./docs/screenshots/form-builder-step1-select-base.png)
+
+*Multi-step form builder showing the base selection step with progress indicator.*
+
+### Form Builder - Step 2: Select Table
+
+Select the table from your chosen base that will store form responses.
+
+![Form Builder - Select Table](./docs/screenshots/form-builder-step2-select-base.png)
+
+*Form builder showing table selection step with selected table displayed.*
+
+### Form Builder - Step 3: Configure Fields
+
+Choose and configure which fields from your Airtable table should appear in the form, including field types and conditional logic.
+
+![Form Builder - Configure Fields](./docs/screenshots/form-builder-step3-select-base.png)
+
+*Field configuration screen showing available fields including Name, Notes, Status, Attachments, and Surname.*
+
+### Form Builder - Step 3.2: Configure Fields (Additional View)
+
+Additional view of field configuration screen.
+
+![Form Builder - Configure Fields Additional](./docs/screenshots/form-builder-step3.2-select-base.png)
+
+*Alternative view of field configuration with field selection options.*
+
+### Form Builder - Step 4: Review and Save
+
+Review your form configuration before finalizing.
+
+![Form Builder - Review and Save](./docs/screenshots/form-builder-step4-select-base.png)
+
+*Final review step showing form name input and summary of selected fields.*
+
+### Public Form View
+
+The public-facing form that users fill out and submit. This is the shareable form link.
+
+![Public Form View](./docs/screenshots/public-form-view.png)
+
+*Public form displaying Name, Notes, and Status fields with submit button.*
+
+### Form Responses Page
+
+View and manage all responses submitted for a specific form.
+
+![Form Responses](./docs/screenshots/form-responses.png)
+
+*Form responses table showing response ID, submission date, status, and preview of submitted data.*
+
+![Form Responses Alternative](./docs/screenshots/form-response2.png)
+
+*Alternative view of form responses page showing detailed response information.*
+
+### Airtable Integration Views
+
+View submitted form responses directly in your Airtable base with synced data.
+
+![Airtable Table View](./docs/screenshots/airtable-table-view.png)
+
+*Airtable base showing records created from form submissions, including Name, Notes, Status, and Attachment fields.*
+
+![Airtable Table View 2](./docs/screenshots/airtable-table-view2.png)
+
+*Additional view of Airtable table with form submissions.*
+
+![Airtable Table View 3](./docs/screenshots/airtable-table-view3.png)
+
+*Detailed view of Airtable table showing multiple records and fields.*
+
+![Airtable Table File Upload View](./docs/screenshots/airtable-table-fileupload-view.png)
+
+*Airtable table view showing file uploads and attachment fields.*
+
+### Database View
+
+MongoDB database view showing stored form responses and form configurations.
+
+![MongoDB View](./docs/screenshots/mongodb-view.png)
+
+*MongoDB database displaying stored form responses with answers and metadata.*
+
+### OAuth Integration
+
+OAuth integration and consent screens for Airtable authentication.
+
+![OAuth Integration](./docs/screenshots/oauth-integration.png)
+
+*OAuth integration settings showing connected Airtable integrations.*
+
+![OAuth Consent Screen](./docs/screenshots/aoth-consent-screen.png)
+
+*Airtable OAuth authorization screen showing permissions requested by the application.*
+
+### Additional Output Images
+
+Additional screenshots and output views from the application.
+
+![Output Image 1](./docs/screenshots/Screenshot 2025-12-01 134738.png)
+
+![Output Image 2](./docs/screenshots/Screenshot 2025-12-01 134744.png)
+
+![Output Image 3](./docs/screenshots/Screenshot 2025-12-01 134812.png)
+
+![Output Image 4](./docs/screenshots/Screenshot 2025-12-01 134815.png)
+
+![Output Image 5](./docs/screenshots/Screenshot 2025-12-01 134837.png)
+
+![Output Image 6](./docs/screenshots/Screenshot 2025-12-01 134840.png)
+
+![Output Image 7](./docs/screenshots/Screenshot 2025-12-01 134859.png)
+
+![Output Image 8](./docs/screenshots/Screenshot 2025-12-01 140836.png)
+
+![Output Image 9](./docs/screenshots/Screenshot 2025-12-01 144132.png)
+
+![Output Image 10](./docs/screenshots/Screenshot 2025-12-01 151249.png)
+
 ### Application Wireframe
 
 ```
@@ -642,15 +774,6 @@ docker run -p 5000:5000 --env-file .env airtable-form-backend
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Feature Screenshots
-
-_Add screenshots here showing:_
-- Dashboard view
-- Form builder interface
-- Public form view
-- Form responses page
-- Conditional logic in action
-
 ### Demo Video
 
 _Link to demo video showing:_
@@ -658,6 +781,8 @@ _Link to demo video showing:_
 - Configuring conditional logic
 - Submitting a form
 - Viewing responses in Airtable
+
+> **Note**: To add screenshots, create a `docs/screenshots/` folder in your project root and place your screenshot images there with the filenames referenced above.
 
 ## 🔍 Troubleshooting
 
