@@ -79,7 +79,65 @@ const deleteWebhook = async (accessToken, baseId, webhookId,userId=null) => {
         console.warn('Webhook deletion failed, continuing with other operations');
     }
 };
+
+
+
+
+/**
+ * Fetch webhook payloads from Airtable
+ * Airtable sends notifications, but we need to fetch the actual payloads separately
+ * @param {string} accessToken - the access token for the user
+ * @param {string} baseId - the id of the base
+ * @param {string} webhookId - the id of the webhook
+ * @param {string} cursor - optional cursor to fetch specific payloads (null for latest)
+ * @param {string} userId - optional userId for token refresh
+ * @returns {Promise<Object>} - the webhook payloads with events
+ */
+const fetchWebhookPayloads = async (accessToken, baseId, webhookId, cursor = null, userId = null) => {
+    const makeRequest = async (token) => {
+        let url = `https://api.airtable.com/v0/bases/${baseId}/webhooks/${webhookId}/payloads`;
+        const params = {};
+        
+        if (cursor) {
+            params.cursor = cursor;
+        }
+        
+        const response = await axios.get(url, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            params: params
+        });
+        
+        return response.data;
+    };
+
+    try {
+        return await makeRequest(accessToken);
+    } catch (error) {
+        if (error.response?.status === 401 && userId) {
+            try {
+                console.log('Refreshing access token for webhook payload fetch:', userId);
+                const newAccessToken = await refreshAccessToken(userId);
+                return await makeRequest(newAccessToken);
+            } catch (refreshError) {
+                console.error('Error refreshing access token:', refreshError.response?.data || refreshError.message);
+                throw new Error('Failed to refresh access token');
+            }
+        }
+        console.error('Error fetching webhook payloads:', error.response?.data || error.message);
+        throw new Error('Failed to fetch webhook payloads');
+    }
+};
+
+
+
+
+
+
 module.exports = {
     registerWebhook,
-    deleteWebhook
+    deleteWebhook,
+    fetchWebhookPayloads
 }
