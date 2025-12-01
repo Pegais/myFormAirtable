@@ -47,6 +47,17 @@ app.use(session({
 //enabling server to read and parse json;
 app.use(express.json());
 
+// Serve uploaded files publicly
+const path = require('path');
+const fs = require('fs');
+const uploadsDir = path.join(__dirname, 'uploads');
+// Create uploads directory if it doesn't exist
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+// Serve static files from uploads directory
+app.use('/uploads', express.static(uploadsDir));
+
 //connecting to DB;
 const Db = require('./db.config');
 const router = require("./routes/auth.routes");

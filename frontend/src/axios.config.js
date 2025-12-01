@@ -61,6 +61,19 @@ export const formAPI={
     //submit form response;
     submitFormResponse:(formId,answers)=>api.post(`/api/forms/${formId}/responses`,{answers}),
 
+    //upload file for form attachment;
+    uploadFile:(formId,file)=>{
+        const formData = new FormData();
+        formData.append('file', file);
+        // Create a separate axios instance without JSON content-type for file uploads
+        return axios.post(`${process.env.REACT_APP_Server_URL || 'http://localhost:5000'}/api/forms/${formId}/upload`, formData, {
+            withCredentials: true,
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    },
+
     //delete a form;
     deleteForm:(formId)=>api.delete(`/api/forms/${formId}`),
 

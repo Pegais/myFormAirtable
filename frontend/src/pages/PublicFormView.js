@@ -32,6 +32,7 @@ export default function PublicFormView() {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
     const [answers, setAnswers] = useState({});
+    const [uploadingFiles, setUploadingFiles] = useState({});
 
 
     useEffect(() => {
@@ -174,24 +175,77 @@ export default function PublicFormView() {
                     </FormControl>
                 );
             case 'multipleAttachments':
-                return(
-                    <TextField
-                        type="file"
-                        
-                        onChange={(e) => {
-                            const files =Array.from(e.target.files);
-                            //converting file to aray of files
-                            const fileData = files.map(file => ({
-                                url:URL.createObjectURL(file),
-                                filename:file.name,
-                                size:file.size,
-                                type:file.type,
-                            }));
-                            handleAnswerChange(question.questionKey, fileData);
-                        }}
-                        required={question.required}
-                        margin="normal"
-                    />
+                const attachmentValue = Array.isArray(value) ? value : [];
+                const isUploading = uploadingFiles[question.questionKey] || false;
+                return (
+                    <Box>
+                        <TextField
+                            type="file"
+                            inputProps={{ multiple: true }}
+                            onChange={async (e) => {
+                                const files = Array.from(e.target.files);
+                                if (files.length === 0) return;
+
+                                setUploadingFiles(prev => ({ ...prev, [question.questionKey]: true }));
+                                setError(null);
+
+                                try {
+                                    const uploadPromises = files.map(file => formAPI.uploadFile(formId, file));
+                                    const uploadResults = await Promise.all(uploadPromises);
+                                    
+                                    const uploadedFiles = uploadResults.map(result => ({
+                                        url: result.data.file.url,
+                                        filename: result.data.file.filename
+                                    }));
+
+                                    // Merge with existing attachments
+                                    const existingAttachments = Array.isArray(value) ? value : [];
+                                    handleAnswerChange(question.questionKey, [...existingAttachments, ...uploadedFiles]);
+                                } catch (uploadError) {
+                                    console.error("Error uploading file:", uploadError);
+                                    setError(uploadError.response?.data?.message || "Failed to upload file(s)");
+                                } finally {
+                                    setUploadingFiles(prev => ({ ...prev, [question.questionKey]: false }));
+                                    // Reset file input
+                                    e.target.value = '';
+                                }
+                            }}
+                            required={question.required && attachmentValue.length === 0}
+                            margin="normal"
+                            disabled={isUploading}
+                            fullWidth
+                        />
+                        {isUploading && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                                <CircularProgress size={20} sx={{ mr: 1 }} />
+                                <Typography variant="body2" color="text.secondary">Uploading...</Typography>
+                            </Box>
+                        )}
+                        {attachmentValue.length > 0 && (
+                            <Box sx={{ mt: 1 }}>
+                                <Typography variant="body2" color="text.secondary" gutterBottom>
+                                    Uploaded files ({attachmentValue.length}):
+                                </Typography>
+                                {attachmentValue.map((file, index) => (
+                                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                        <Typography variant="body2" sx={{ mr: 1 }}>
+                                            {file.filename || 'File'}
+                                        </Typography>
+                                        <Button
+                                            size="small"
+                                            color="error"
+                                            onClick={() => {
+                                                const updatedFiles = attachmentValue.filter((_, i) => i !== index);
+                                                handleAnswerChange(question.questionKey, updatedFiles);
+                                            }}
+                                        >
+                                            Remove
+                                        </Button>
+                                    </Box>
+                                ))}
+                            </Box>
+                        )}
+                    </Box>
                 )
             default:
                 return <Typography variant="body2" color="text.secondary">Unsupported question type: {question.type}</Typography>;

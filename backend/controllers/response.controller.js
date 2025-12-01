@@ -1,6 +1,44 @@
 const ResponseModel = require("../models/response.model");
 const FormModel = require("../models/form.model");
 const { createRecordInAirtable, updateRecordInAirtable, deleteRecordInAirtable } = require("../services/airtable.service");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+
+// Configure multer for file storage
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadsDir = path.join(__dirname, '..', 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+        // Generate unique filename with timestamp and random string
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        const name = path.basename(file.originalname, ext);
+        cb(null, `${name}-${uniqueSuffix}${ext}`);
+    }
+});
+
+// File filter - accept all file types (Airtable supports any file type)
+const fileFilter = (req, file, cb) => {
+    cb(null, true);
+};
+
+// Configure multer with limits (Airtable supports up to 5GB per file)
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024 * 1024 // 5GB limit
+    }
+});
+
+// Multer middleware for single file upload
+const uploadSingle = upload.single('file');
 
 /**
  * submitting a form response;
@@ -27,9 +65,15 @@ const submitFormResponse = async (req, res, next) => {
             const answerforQuestion = answers[question.questionKey];
 
             //check required fields;
-            if (question.required && (answerforQuestion === undefined || answerforQuestion === null || answerforQuestion === '')) {
-                validationErrors.push(`Question ${question.questionKey} is required`);
-                continue;
+            if (question.required) {
+                const isEmpty = answerforQuestion === undefined || 
+                               answerforQuestion === null || 
+                               answerforQuestion === '' ||
+                               (Array.isArray(answerforQuestion) && answerforQuestion.length === 0);
+                if (isEmpty) {
+                    validationErrors.push(`Question ${question.questionKey} is required`);
+                    continue;
+                }
             }
 
             //skip validation if field is not required;
@@ -76,9 +120,27 @@ const submitFormResponse = async (req, res, next) => {
         const airtableFields = {};
         for (const question of form.questions) {
             const answerValue = answers[question.questionKey];
-            //only include if asnwer exists;
+            //only include if answer exists;
             if (answerValue !== undefined && answerValue !== null && answerValue !== '') {
-                airtableFields[question.airtableFieldId] = answerValue;
+                // Format attachment fields for Airtable
+                if (question.type === 'multipleAttachments' && Array.isArray(answerValue)) {
+                    // Airtable expects array of objects with url and filename
+                    airtableFields[question.airtableFieldId] = answerValue.map(attachment => {
+                        // Handle both URL strings and objects
+                        if (typeof attachment === 'string') {
+                            return { url: attachment, filename: path.basename(attachment) };
+                        }
+                        if (attachment && attachment.url) {
+                            return {
+                                url: attachment.url,
+                                filename: attachment.filename || path.basename(attachment.url) || 'file'
+                            };
+                        }
+                        return null;
+                    }).filter(Boolean); // Remove null entries
+                } else {
+                    airtableFields[question.airtableFieldId] = answerValue;
+                }
             }
         }
 
@@ -165,7 +227,46 @@ const getFormResponses = async (req, res, next) => {
     }
 }
 
+/**
+ * Upload a file for form attachment
+ * POST /api/forms/:formId/upload
+ * Body: multipart/form-data with 'file' field
+ */
+const uploadFile = async (req, res, next) => {
+    uploadSingle(req, res, (err) => {
+        if (err) {
+            if (err instanceof multer.MulterError) {
+                if (err.code === 'LIMIT_FILE_SIZE') {
+                    return res.status(400).json({ message: 'File size exceeds 5GB limit' });
+                }
+                return res.status(400).json({ message: `Upload error: ${err.message}` });
+            }
+            return res.status(500).json({ message: `File upload error: ${err.message}` });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        // Generate public URL for the uploaded file
+        const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+        const publicUrl = `${BACKEND_URL}/uploads/${req.file.filename}`;
+
+        res.status(200).json({
+            message: 'File uploaded successfully',
+            file: {
+                url: publicUrl,
+                filename: req.file.originalname,
+                size: req.file.size,
+                type: req.file.mimetype
+            }
+        });
+    });
+};
+
 module.exports = {
     submitFormResponse,
-    getFormResponses
+    getFormResponses,
+    uploadFile,
+    uploadSingle
 };
