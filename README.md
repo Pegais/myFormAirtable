@@ -701,25 +701,47 @@ OAuth integration and consent screens for Airtable authentication.
 
 Additional screenshots and output views from the application.
 
-![Output Image 1](./docs/screenshots/Screenshot 2025-12-01 134738.png)
+> **Note**: Screenshot files have been renamed to remove spaces for better GitHub markdown compatibility. All images should display correctly when files are committed to the repository.
 
-![Output Image 2](./docs/screenshots/Screenshot 2025-12-01 134744.png)
+![Output Image 1](./docs/screenshots/Screenshot-2025-12-01-134738.png)
 
-![Output Image 3](./docs/screenshots/Screenshot 2025-12-01 134812.png)
+*Output Image 1 - Application screenshot*
 
-![Output Image 4](./docs/screenshots/Screenshot 2025-12-01 134815.png)
+![Output Image 2](./docs/screenshots/Screenshot-2025-12-01-134744.png)
 
-![Output Image 5](./docs/screenshots/Screenshot 2025-12-01 134837.png)
+*Output Image 2 - Application screenshot*
 
-![Output Image 6](./docs/screenshots/Screenshot 2025-12-01 134840.png)
+![Output Image 3](./docs/screenshots/Screenshot-2025-12-01-134812.png)
 
-![Output Image 7](./docs/screenshots/Screenshot 2025-12-01 134859.png)
+*Output Image 3 - Application screenshot*
 
-![Output Image 8](./docs/screenshots/Screenshot 2025-12-01 140836.png)
+![Output Image 4](./docs/screenshots/Screenshot-2025-12-01-134815.png)
 
-![Output Image 9](./docs/screenshots/Screenshot 2025-12-01 144132.png)
+*Output Image 4 - Application screenshot*
 
-![Output Image 10](./docs/screenshots/Screenshot 2025-12-01 151249.png)
+![Output Image 5](./docs/screenshots/Screenshot-2025-12-01-134837.png)
+
+*Output Image 5 - Application screenshot*
+
+![Output Image 6](./docs/screenshots/Screenshot-2025-12-01-134840.png)
+
+*Output Image 6 - Application screenshot*
+
+![Output Image 7](./docs/screenshots/Screenshot-2025-12-01-134859.png)
+
+*Output Image 7 - Application screenshot*
+
+![Output Image 8](./docs/screenshots/Screenshot-2025-12-01-140836.png)
+
+*Output Image 8 - Application screenshot*
+
+![Output Image 9](./docs/screenshots/Screenshot-2025-12-01-144132.png)
+
+*Output Image 9 - Application screenshot*
+
+![Output Image 10](./docs/screenshots/Screenshot-2025-12-01-151249.png)
+
+*Output Image 10 - Application screenshot*
 
 ### Application Wireframe
 
