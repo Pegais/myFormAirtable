@@ -136,6 +136,9 @@ const isFieldSupported = (field) => {
  */
 const createRecordInAirtable = async (accessToken, baseId, tableId, fields, userId=null) => {
     const makeRequest=async(token)=>{
+        // Log fields being sent to Airtable for debugging
+        console.error('Airtable: Creating record with fields:', JSON.stringify(fields, null, 2));
+        
         const response = await axios.post(`https://api.airtable.com/v0/${baseId}/${tableId}`, {
             fields: fields
         }, {
@@ -158,8 +161,11 @@ const createRecordInAirtable = async (accessToken, baseId, tableId, fields, user
                 console.error('Airtable: Error refreshing access token:', refreshError.response?.data || refreshError.message);
                 throw new Error('Failed to refresh access token');
             }
-        }   
-        console.error('Airtable: Error creating record:', error.response?.data || error.message);
+        }
+        // Log detailed error response from Airtable
+        console.error('Airtable: Error creating record - Status:', error.response?.status);
+        console.error('Airtable: Error response data:', JSON.stringify(error.response?.data, null, 2));
+        console.error('Airtable: Error message:', error.message);
         throw new Error('Failed to create record in airtable');
     }
 }

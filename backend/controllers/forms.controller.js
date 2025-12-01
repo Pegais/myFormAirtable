@@ -97,10 +97,10 @@ const createForm = async (req, res, next) => {
             if (owner && owner.accessToken) {
                 const webhookUrl = `${process.env.BACKEND_URL}/webhooks/airtable`;
                 if (webhookUrl.startsWith('http://')) {
-                    console.warn('⚠️  WARNING: Webhook URL uses HTTP. Airtable requires HTTPS.');
-                    console.warn('   For local development, use ngrok or similar tool to create HTTPS tunnel.');
-                    console.warn('   Skipping webhook registration. Form will be created without webhook.');
-                    console.warn(`   Local webhook URL would be: ${webhookUrl}`);
+                    // console.warn('⚠️  WARNING: Webhook URL uses HTTP. Airtable requires HTTPS.');
+                    // console.warn('   For local development, use ngrok or similar tool to create HTTPS tunnel.');
+                    // console.warn('   Skipping webhook registration. Form will be created without webhook.');
+                    // console.warn(`   Local webhook URL would be: ${webhookUrl}`);
 
                 } else {
                     //url is https, so we can register the webhook;
@@ -227,7 +227,7 @@ const deleteForm = async (req, res, next) => {
                 }
             } catch (webhookError) {
                 console.error("Forms: Error deleting webhook:", webhookError.message);
-                console.warn('Webhook deletion failed, continuing with other operations');
+                // console.warn('Webhook deletion failed, continuing with other operations');
                 //continue with form deletion even if webhook deletion fails;
             }
         }

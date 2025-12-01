@@ -72,7 +72,7 @@ const handleAirtableWebhook = async (req, res, next) => {
         const { base, webhook, timestamp } = req.body;
 
         // Log the incoming webhook request body
-        console.log(`Webhook: Incoming request body:`, JSON.stringify(req.body, null, 2));
+        // console.log(`Webhook: Incoming request body:`, JSON.stringify(req.body, null, 2));
 
         if (!base || !base.id || !webhook || !webhook.id) {
             console.error("Webhook: Missing base or webhook ID in request");
@@ -82,10 +82,10 @@ const handleAirtableWebhook = async (req, res, next) => {
         const baseId = base.id;
         const webhookId = webhook.id;
 
-        console.log(`Webhook notification received:`);
-        console.log(`Base: ${baseId}`);
-        console.log(`Webhook: ${webhookId}`);
-        console.log(`Timestamp: ${timestamp}`);
+        // console.log(`Webhook notification received:`);
+        // console.log(`Base: ${baseId}`);
+        // console.log(`Webhook: ${webhookId}`);
+        // console.log(`Timestamp: ${timestamp}`);
 
         // Find the form associated with this webhook
         const form = await FormModel.findOne({ webhookId: webhookId });
@@ -135,18 +135,18 @@ const handleAirtableWebhook = async (req, res, next) => {
                 );
 
                 // Log payload response structure (first iteration only)
-                if (iterations === 1) {
-                    console.log(`Webhook: Payload response structure:`, JSON.stringify({
-                        hasPayloads: !!payloadResponse?.payloads,
-                        payloadsCount: payloadResponse?.payloads?.length || 0,
-                        hasCursor: !!payloadResponse?.cursor,
-                        mightHaveMore: payloadResponse?.mightHaveMore,
-                        hasMore: payloadResponse?.hasMore,
-                        responseKeys: payloadResponse ? Object.keys(payloadResponse) : []
-                    }, null, 2));
-                    // Log full payload response for first fetch to see complete structure
-                    console.log(`Webhook: Full payload response:`, JSON.stringify(payloadResponse, null, 2));
-                }
+                // if (iterations === 1) {
+                //     console.log(`Webhook: Payload response structure:`, JSON.stringify({
+                //         hasPayloads: !!payloadResponse?.payloads,
+                //         payloadsCount: payloadResponse?.payloads?.length || 0,
+                //         hasCursor: !!payloadResponse?.cursor,
+                //         mightHaveMore: payloadResponse?.mightHaveMore,
+                //         hasMore: payloadResponse?.hasMore,
+                //         responseKeys: payloadResponse ? Object.keys(payloadResponse) : []
+                //     }, null, 2));
+                //     // Log full payload response for first fetch to see complete structure
+                //     console.log(`Webhook: Full payload response:`, JSON.stringify(payloadResponse, null, 2));
+                // }
 
                 if (!payloadResponse) {
                     break;
@@ -159,20 +159,20 @@ const handleAirtableWebhook = async (req, res, next) => {
                 }
 
                 // Log first payload structure for debugging
-                if (allPayloads.length === 0 && payloads.length > 0) {
-                    const firstPayload = payloads[0];
-                    const tableIds = firstPayload.changedTablesById ? Object.keys(firstPayload.changedTablesById) : [];
-                    console.log(`Webhook: Sample payload structure:`, JSON.stringify({
-                        payloadKeys: Object.keys(firstPayload),
-                        timestamp: firstPayload.timestamp,
-                        baseTransactionNumber: firstPayload.baseTransactionNumber,
-                        changedTablesCount: tableIds.length,
-                        changedTableIds: tableIds,
-                        payloadFormat: firstPayload.payloadFormat
-                    }, null, 2));
-                    // Log full first payload to see complete structure
-                    console.log(`Webhook: Full first payload:`, JSON.stringify(firstPayload, null, 2));
-                }
+                // if (allPayloads.length === 0 && payloads.length > 0) {
+                //     const firstPayload = payloads[0];
+                //     const tableIds = firstPayload.changedTablesById ? Object.keys(firstPayload.changedTablesById) : [];
+                //     console.log(`Webhook: Sample payload structure:`, JSON.stringify({
+                //         payloadKeys: Object.keys(firstPayload),
+                //         timestamp: firstPayload.timestamp,
+                //         baseTransactionNumber: firstPayload.baseTransactionNumber,
+                //         changedTablesCount: tableIds.length,
+                //         changedTableIds: tableIds,
+                //         payloadFormat: firstPayload.payloadFormat
+                //     }, null, 2));
+                //     // Log full first payload to see complete structure
+                //     console.log(`Webhook: Full first payload:`, JSON.stringify(firstPayload, null, 2));
+                // }
 
                 allPayloads = allPayloads.concat(payloads);
                 stats.totalPayloads = allPayloads.length;
@@ -198,7 +198,7 @@ const handleAirtableWebhook = async (req, res, next) => {
             return res.status(200).json({ message: "Webhook ping received - no payloads" });
         }
 
-        console.log(`Webhook: Processing ${allPayloads.length} payload(s) for form table: ${form.tableId}`);
+        // console.log(`Webhook: Processing ${allPayloads.length} payload(s) for form table: ${form.tableId}`);
 
         // Process each payload
         for (let i = 0; i < allPayloads.length; i++) {
@@ -214,9 +214,9 @@ const handleAirtableWebhook = async (req, res, next) => {
             const tableIds = Object.keys(payload.changedTablesById);
             const filteredTableIds = tableIds.filter(id => id !== form.tableId);
             
-            if (filteredTableIds.length > 0) {
-                console.log(`Webhook: Filtering out ${filteredTableIds.length} table(s) not belonging to form (tableIds: ${filteredTableIds.join(', ')})`);
-            }
+            // if (filteredTableIds.length > 0) {
+            //     console.log(`Webhook: Filtering out ${filteredTableIds.length} table(s) not belonging to form (tableIds: ${filteredTableIds.join(', ')})`);
+            // }
 
             for (const [tableId, tableChanges] of Object.entries(payload.changedTablesById)) {
                 // Filter: Only process changes for the table this form is connected to
@@ -246,7 +246,7 @@ const handleAirtableWebhook = async (req, res, next) => {
                                 response.updatedAt = new Date();
                                 await response.save();
                                 stats.processed++;
-                                console.log(`Webhook: Response updated for created record ${recordId}`);
+                                // console.log(`Webhook: Response updated for created record ${recordId}`);
                             }
                         } catch (error) {
                             stats.errors++;
@@ -269,7 +269,7 @@ const handleAirtableWebhook = async (req, res, next) => {
                                     response.updatedAt = new Date();
                                     await response.save();
                                     stats.processed++;
-                                    console.log(`Webhook: Response soft deleted for record ${recordId}`);
+                                    // console.log(`Webhook: Response soft deleted for record ${recordId}`);
                                 } else {
                                     stats.notFound++;
                                 }
@@ -293,7 +293,7 @@ const handleAirtableWebhook = async (req, res, next) => {
                                 response.updatedAt = new Date();
                                 await response.save();
                                 stats.processed++;
-                                console.log(`Webhook: Response updated for record ${recordId}`);
+                                // console.log(`Webhook: Response updated for record ${recordId}`);
                             }
                         } catch (error) {
                             stats.errors++;
@@ -305,7 +305,7 @@ const handleAirtableWebhook = async (req, res, next) => {
         }
 
         // Log summary statistics
-        console.log(`Webhook: Processing summary - Processed: ${stats.processed}, Not Found: ${stats.notFound}, Errors: ${stats.errors}, Skipped: ${stats.skipped}`);
+        // console.log(`Webhook: Processing summary - Processed: ${stats.processed}, Not Found: ${stats.notFound}, Errors: ${stats.errors}, Skipped: ${stats.skipped}`);
 
         // Always return 200 OK to Airtable
         return res.status(200).json({ message: "Webhook processed successfully" });

@@ -125,19 +125,36 @@ const submitFormResponse = async (req, res, next) => {
                 // Format attachment fields for Airtable
                 if (question.type === 'multipleAttachments' && Array.isArray(answerValue)) {
                     // Airtable expects array of objects with url and filename
-                    airtableFields[question.airtableFieldId] = answerValue.map(attachment => {
-                        // Handle both URL strings and objects
+                    // Support single attachment (take first file) as per Airtable requirements
+                    const attachments = answerValue.filter(item => item !== null && item !== undefined);
+                    
+                    if (attachments.length > 0) {
+                        // Take only the first attachment (single attachment support)
+                        const attachment = attachments[0];
+                        
+                        // Format for Airtable: array with single object containing url and filename
+                        let formattedAttachment;
                         if (typeof attachment === 'string') {
-                            return { url: attachment, filename: path.basename(attachment) };
-                        }
-                        if (attachment && attachment.url) {
-                            return {
+                            formattedAttachment = { 
+                                url: attachment,
+                                filename: path.basename(attachment)
+                            };
+                        } else if (attachment && attachment.url) {
+                            formattedAttachment = {
                                 url: attachment.url,
                                 filename: attachment.filename || path.basename(attachment.url) || 'file'
                             };
                         }
-                        return null;
-                    }).filter(Boolean); // Remove null entries
+                        
+                        if (formattedAttachment) {
+                            // Ensure URL uses HTTPS (Airtable requirement)
+                            if (formattedAttachment.url.startsWith('http://')) {
+                                formattedAttachment.url = formattedAttachment.url.replace('http://', 'https://');
+                            }
+                            // Airtable expects array format even for single attachment
+                            airtableFields[question.airtableFieldId] = [formattedAttachment];
+                        }
+                    }
                 } else {
                     airtableFields[question.airtableFieldId] = answerValue;
                 }
@@ -153,10 +170,13 @@ const submitFormResponse = async (req, res, next) => {
         //creating record in airtable;
         let airtableRecordId;
         try {
+            // Log the fields being sent to Airtable before creating record
+            console.error("Response: Creating record in Airtable with fields:", JSON.stringify(airtableFields, null, 2));
             airtableRecordId = await createRecordInAirtable(owner.accessToken, form.baseId, form.tableId, airtableFields,owner.userId);
         } catch (error) {
             console.error("Response: Error creating record in Airtable:", error.message);
-            return res.status(500).json({ message: "Failed to create record in airtable" });
+            console.error("Response: Error details:", error.response?.data);
+            return res.status(500).json({ message: "Failed to create record in airtable", details: error.response?.data?.error?.message || error.message });
         }
 
         //save response to MongoDB;
@@ -249,7 +269,12 @@ const uploadFile = async (req, res, next) => {
         }
 
         // Generate public URL for the uploaded file
-        const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+        // Ensure HTTPS for Airtable (Airtable requires HTTPS for attachment URLs)
+        let BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+        // Replace HTTP with HTTPS if not already HTTPS
+        if (BACKEND_URL.startsWith('http://') && !BACKEND_URL.includes('localhost')) {
+            BACKEND_URL = BACKEND_URL.replace('http://', 'https://');
+        }
         const publicUrl = `${BACKEND_URL}/uploads/${req.file.filename}`;
 
         res.status(200).json({

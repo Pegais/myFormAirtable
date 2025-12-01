@@ -175,13 +175,13 @@ export default function PublicFormView() {
                     </FormControl>
                 );
             case 'multipleAttachments':
-                const attachmentValue = Array.isArray(value) ? value : [];
+                const attachmentValue = Array.isArray(value) && value.length > 0 ? value[0] : null;
                 const isUploading = uploadingFiles[question.questionKey] || false;
                 return (
                     <Box>
                         <TextField
                             type="file"
-                            inputProps={{ multiple: true }}
+                            inputProps={{ multiple: false }}
                             onChange={async (e) => {
                                 const files = Array.from(e.target.files);
                                 if (files.length === 0) return;
@@ -190,27 +190,27 @@ export default function PublicFormView() {
                                 setError(null);
 
                                 try {
-                                    const uploadPromises = files.map(file => formAPI.uploadFile(formId, file));
-                                    const uploadResults = await Promise.all(uploadPromises);
+                                    // Upload only the first file (single attachment)
+                                    const file = files[0];
+                                    const uploadResult = await formAPI.uploadFile(formId, file);
                                     
-                                    const uploadedFiles = uploadResults.map(result => ({
-                                        url: result.data.file.url,
-                                        filename: result.data.file.filename
-                                    }));
+                                    const uploadedFile = {
+                                        url: uploadResult.data.file.url,
+                                        filename: uploadResult.data.file.filename
+                                    };
 
-                                    // Merge with existing attachments
-                                    const existingAttachments = Array.isArray(value) ? value : [];
-                                    handleAnswerChange(question.questionKey, [...existingAttachments, ...uploadedFiles]);
+                                    // Store as array with single file (for backend processing)
+                                    handleAnswerChange(question.questionKey, [uploadedFile]);
                                 } catch (uploadError) {
                                     console.error("Error uploading file:", uploadError);
-                                    setError(uploadError.response?.data?.message || "Failed to upload file(s)");
+                                    setError(uploadError.response?.data?.message || "Failed to upload file");
                                 } finally {
                                     setUploadingFiles(prev => ({ ...prev, [question.questionKey]: false }));
                                     // Reset file input
                                     e.target.value = '';
                                 }
                             }}
-                            required={question.required && attachmentValue.length === 0}
+                            required={question.required && !attachmentValue}
                             margin="normal"
                             disabled={isUploading}
                             fullWidth
@@ -221,28 +221,25 @@ export default function PublicFormView() {
                                 <Typography variant="body2" color="text.secondary">Uploading...</Typography>
                             </Box>
                         )}
-                        {attachmentValue.length > 0 && (
+                        {attachmentValue && (
                             <Box sx={{ mt: 1 }}>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                    Uploaded files ({attachmentValue.length}):
+                                    Uploaded file:
                                 </Typography>
-                                {attachmentValue.map((file, index) => (
-                                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                                        <Typography variant="body2" sx={{ mr: 1 }}>
-                                            {file.filename || 'File'}
-                                        </Typography>
-                                        <Button
-                                            size="small"
-                                            color="error"
-                                            onClick={() => {
-                                                const updatedFiles = attachmentValue.filter((_, i) => i !== index);
-                                                handleAnswerChange(question.questionKey, updatedFiles);
-                                            }}
-                                        >
-                                            Remove
-                                        </Button>
-                                    </Box>
-                                ))}
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                    <Typography variant="body2" sx={{ mr: 1 }}>
+                                        {attachmentValue.filename || 'File'}
+                                    </Typography>
+                                    <Button
+                                        size="small"
+                                        color="error"
+                                        onClick={() => {
+                                            handleAnswerChange(question.questionKey, []);
+                                        }}
+                                    >
+                                        Remove
+                                    </Button>
+                                </Box>
                             </Box>
                         )}
                     </Box>
