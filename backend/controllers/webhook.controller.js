@@ -8,6 +8,47 @@ const FormModel = require("../models/form.model");
 const { fetchWebhookPayloads } = require("../services/webhook.service");
 const UserModel = require("../models/user.model");
 
+/**
+ * Map Airtable cellValuesByFieldId to our answers format using form questions
+ * @param {Object} cellValuesByFieldId - Airtable field values keyed by field ID
+ * @param {Array} questions - Form questions array with airtableFieldId mappings
+ * @returns {Object} - Answers object keyed by questionKey
+ */
+const mapCellValuesToAnswers = (cellValuesByFieldId, questions) => {
+    const answers = {};
+
+    // Create a map of airtableFieldId to questionKey for quick lookup
+    const fieldIdToQuestionKey = {};
+    questions.forEach(q => {
+        fieldIdToQuestionKey[q.airtableFieldId] = q.questionKey;
+    });
+
+    // Map each cell value to its question key
+    for (const [fieldId, value] of Object.entries(cellValuesByFieldId)) {
+        const questionKey = fieldIdToQuestionKey[fieldId];
+        if (questionKey) {
+            // Handle different value types from Airtable
+            if (value && typeof value === 'object' && value.id) {
+                // Single select option object: { id: "...", name: "...", color: "..." }
+                answers[questionKey] = value.name || value.id;
+            } else if (Array.isArray(value)) {
+                // Multiple selects or attachments: array of objects or values
+                answers[questionKey] = value.map(v => {
+                    if (v && typeof v === 'object' && v.name) {
+                        return v.name;
+                    }
+                    return v;
+                });
+            } else if (value !== null && value !== undefined) {
+                // Simple value (text, number, etc.) - skip null/undefined
+                answers[questionKey] = value;
+            }
+        }
+    }
+
+    return answers;
+};
+
 const handleAirtableWebhook = async (req, res, next) => {
     try {
         // console.log("=== Webhook Received ===");
@@ -28,7 +69,7 @@ const handleAirtableWebhook = async (req, res, next) => {
         }
 
         // Handle POST requests
-        const { base, webhook, timestamp, eventNotifications } = req.body;
+        const { base, webhook, timestamp } = req.body;
 
         // Log the incoming webhook request body
         console.log(`Webhook: Incoming request body:`, JSON.stringify(req.body, null, 2));
@@ -45,7 +86,6 @@ const handleAirtableWebhook = async (req, res, next) => {
         console.log(`Base: ${baseId}`);
         console.log(`Webhook: ${webhookId}`);
         console.log(`Timestamp: ${timestamp}`);
-        console.log(`Event notifications in request: ${eventNotifications?.length || 0}`);
 
         // Find the form associated with this webhook
         const form = await FormModel.findOne({ webhookId: webhookId });
@@ -120,15 +160,18 @@ const handleAirtableWebhook = async (req, res, next) => {
 
                 // Log first payload structure for debugging
                 if (allPayloads.length === 0 && payloads.length > 0) {
+                    const firstPayload = payloads[0];
+                    const tableIds = firstPayload.changedTablesById ? Object.keys(firstPayload.changedTablesById) : [];
                     console.log(`Webhook: Sample payload structure:`, JSON.stringify({
-                        payloadKeys: Object.keys(payloads[0]),
-                        timestamp: payloads[0].timestamp,
-                        eventNotificationsCount: payloads[0].eventNotifications?.length || 0,
-                        firstEventType: payloads[0].eventNotifications?.[0]?.event?.type,
-                        firstRecordId: payloads[0].eventNotifications?.[0]?.event?.record?.id
+                        payloadKeys: Object.keys(firstPayload),
+                        timestamp: firstPayload.timestamp,
+                        baseTransactionNumber: firstPayload.baseTransactionNumber,
+                        changedTablesCount: tableIds.length,
+                        changedTableIds: tableIds,
+                        payloadFormat: firstPayload.payloadFormat
                     }, null, 2));
                     // Log full first payload to see complete structure
-                    console.log(`Webhook: Full first payload:`, JSON.stringify(payloads[0], null, 2));
+                    console.log(`Webhook: Full first payload:`, JSON.stringify(firstPayload, null, 2));
                 }
 
                 allPayloads = allPayloads.concat(payloads);
@@ -155,118 +198,108 @@ const handleAirtableWebhook = async (req, res, next) => {
             return res.status(200).json({ message: "Webhook ping received - no payloads" });
         }
 
-        console.log(`Webhook: Processing ${allPayloads.length} payload(s)`);
+        console.log(`Webhook: Processing ${allPayloads.length} payload(s) for form table: ${form.tableId}`);
 
         // Process each payload
         for (let i = 0; i < allPayloads.length; i++) {
             const payload = allPayloads[i];
-            // console.log(`Processing payload ${i + 1}/${allPayloads.length}:`);
-            // console.log(`Payload timestamp: ${payload.timestamp}`);
 
-            if (!payload.eventNotifications || !Array.isArray(payload.eventNotifications) || payload.eventNotifications.length === 0) {
-                // console.log("No event notifications in this payload");
+            // Airtable v0 payload format uses changedTablesById instead of eventNotifications
+            if (!payload.changedTablesById || typeof payload.changedTablesById !== 'object') {
+                // No changes in this payload, skip
                 continue;
             }
 
-            stats.totalEvents += payload.eventNotifications.length;
+            // Process each table that has changes - but only process our form's table
+            const tableIds = Object.keys(payload.changedTablesById);
+            const filteredTableIds = tableIds.filter(id => id !== form.tableId);
+            
+            if (filteredTableIds.length > 0) {
+                console.log(`Webhook: Filtering out ${filteredTableIds.length} table(s) not belonging to form (tableIds: ${filteredTableIds.join(', ')})`);
+            }
 
-            // Process each event notification in the payload
-            for (const notification of payload.eventNotifications) {
-                try {
-                    // Log notification structure for debugging (first event only)
-                    if (stats.totalEvents === 1) {
-                        console.log(`Webhook: Sample event notification structure:`, JSON.stringify({
-                            notificationKeys: Object.keys(notification),
-                            hasEvent: !!notification.event,
-                            eventType: notification.event?.type,
-                            recordId: notification.event?.record?.id,
-                            recordFieldsCount: notification.event?.record?.fields ? Object.keys(notification.event.record.fields).length : 0
-                        }, null, 2));
-                        // Log full first event notification to see complete structure
-                        console.log(`Webhook: Full first event notification:`, JSON.stringify(notification, null, 2));
-                    }
+            for (const [tableId, tableChanges] of Object.entries(payload.changedTablesById)) {
+                // Filter: Only process changes for the table this form is connected to
+                if (tableId !== form.tableId) {
+                    stats.skipped++;
+                    // Skip tables that don't belong to this form
+                    continue;
+                }
 
-                    const { event } = notification;
+                // Process created records
+                if (tableChanges.createdRecordsById) {
+                    for (const [recordId, recordData] of Object.entries(tableChanges.createdRecordsById)) {
+                        try {
+                            stats.totalEvents++;
+                            const response = await ResponseModel.findOne({ airtableRecordId: recordId, formId: form._id });
 
-                    if (!event || !event.type) {
-                        stats.skipped++;
-                        console.log(`Webhook: Invalid event notification - missing event or event.type. Notification:`, JSON.stringify(notification, null, 2));
-                        continue;
-                    }
+                            if (!response) {
+                                stats.notFound++;
+                                // Record created in Airtable but not in MongoDB (created directly in Airtable)
+                                continue;
+                            }
 
-                    const { type, record } = event;
-
-                    // Check if record exists in event
-                    if (!record || !record.id) {
-                        stats.skipped++;
-                        console.log(`Webhook: Event missing record or record.id. Event type: ${type}, Event structure:`, JSON.stringify(event, null, 2));
-                        continue;
-                    }
-
-                    // Find response from airtable record id
-                    // Handle case where record might not exist in MongoDB (deleted, etc.)
-                    const response = await ResponseModel.findOne({ airtableRecordId: record.id });
-
-                    if (!response) {
-                        stats.notFound++;
-                        // Record doesn't exist in MongoDB - this is OK, just skip it
-                        // This can happen if:
-                        // - Record was created directly in Airtable (not via form)
-                        // - Record was deleted from MongoDB but still exists in Airtable
-                        // - Record belongs to a different form
-                        // console.log(`Response not found for airtable record: ${record.id} (skipping)`);
-                        continue;
-                    }
-
-                    // Process the event based on type
-                    switch (type) {
-                        case 'record.updated':
-                            try {
-                                // Update response in our database
-                                response.answers = record.fields || response.answers;
+                            // Record already exists in MongoDB (created via form), update with latest values
+                            if (recordData.cellValuesByFieldId) {
+                                const updatedAnswers = mapCellValuesToAnswers(recordData.cellValuesByFieldId, form.questions);
+                                response.answers = { ...response.answers, ...updatedAnswers };
                                 response.updatedAt = new Date();
                                 await response.save();
                                 stats.processed++;
-                                console.log(`Webhook: Response updated for record ${record.id}`);
-                            } catch (updateError) {
-                                stats.errors++;
-                                console.error(`Webhook: Error updating record ${record.id}:`, updateError.message);
-                                // Continue processing other records even if this one fails
+                                console.log(`Webhook: Response updated for created record ${recordId}`);
                             }
-                            break;
+                        } catch (error) {
+                            stats.errors++;
+                            console.error(`Webhook: Error processing created record ${recordId}:`, error.message);
+                        }
+                    }
+                }
 
-                        case 'record.deleted':
-                            try {
-                                // Soft delete the response in our database
-                                response.deletedInAirtable = true;
+                // Process changed/updated records
+                if (tableChanges.changedRecordsById) {
+                    for (const [recordId, recordData] of Object.entries(tableChanges.changedRecordsById)) {
+                        try {
+                            stats.totalEvents++;
+                            
+                            // Check if record was deleted (has previous but no current)
+                            if (recordData.previous && !recordData.current) {
+                                const response = await ResponseModel.findOne({ airtableRecordId: recordId, formId: form._id });
+                                if (response) {
+                                    response.deletedInAirtable = true;
+                                    response.updatedAt = new Date();
+                                    await response.save();
+                                    stats.processed++;
+                                    console.log(`Webhook: Response soft deleted for record ${recordId}`);
+                                } else {
+                                    stats.notFound++;
+                                }
+                                continue;
+                            }
+
+                            // Handle updated records
+                            const response = await ResponseModel.findOne({ airtableRecordId: recordId, formId: form._id });
+
+                            if (!response) {
+                                stats.notFound++;
+                                // Record changed in Airtable but not in MongoDB
+                                continue;
+                            }
+
+                            // Update response with changed values
+                            if (recordData.current && recordData.current.cellValuesByFieldId) {
+                                const updatedAnswers = mapCellValuesToAnswers(recordData.current.cellValuesByFieldId, form.questions);
+                                // Merge with existing answers, only updating changed fields
+                                response.answers = { ...response.answers, ...updatedAnswers };
                                 response.updatedAt = new Date();
                                 await response.save();
                                 stats.processed++;
-                                console.log(`Webhook: Response soft deleted for record ${record.id}`);
-                            } catch (deleteError) {
-                                stats.errors++;
-                                console.error(`Webhook: Error soft-deleting record ${record.id}:`, deleteError.message);
-                                // Continue processing other records even if this one fails
+                                console.log(`Webhook: Response updated for record ${recordId}`);
                             }
-                            break;
-
-                        case 'record.created':
-                            // Record already exists in MongoDB (created via form submission)
-                            // This event might come if record was recreated in Airtable
-                            stats.skipped++;
-                            // console.log(`Record created event: ${record.id} (already in MongoDB)`);
-                            break;
-
-                        default:
-                            stats.skipped++;
-                            // console.log(`Unsupported event type: ${type}`);
-                            break;
+                        } catch (error) {
+                            stats.errors++;
+                            console.error(`Webhook: Error processing changed record ${recordId}:`, error.message);
+                        }
                     }
-                } catch (eventError) {
-                    // Catch any errors in processing individual events
-                    stats.errors++;
-                    console.error(`Webhook: Error processing event:`, eventError.message);
-                    // Continue with next event
                 }
             }
         }
